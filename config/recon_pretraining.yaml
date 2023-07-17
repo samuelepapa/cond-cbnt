@@ -1,0 +1,145 @@
+# @package _global_
+defaults:
+  - override hydra/sweeper: optuna
+  - override hydra/sweeper/sampler: tpe
+
+# global
+wandb_log: True
+run_name: 'siren'
+project_name: 'recon_pretraining'
+seed: 42
+cuda: True
+tracking_metric: "psnr"
+load_config: False
+load_weights: False
+
+hydra:
+  job:
+    chdir: True
+  sweep:
+    dir: "/projects/nef_recon/multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}_${run_name}"
+  run:
+    dir: "~/Documents/GitHub/nef-ct-2/experiments/outputs"
+
+log_steps:
+  volumes: 5000
+  loss: 100
+  metrics: 1000
+  gradients: 100
+
+val_log_steps:
+  volumes: 1000
+  loss: 100
+  metrics: 500
+
+# neural fields
+nef:
+  type: 'MLP' # choice of Siren, MLP, RFF, aRFF, GARF, Hash, Gabor
+  num_layers: 6
+  num_hidden: 64
+  final_act: False
+  conditioning:
+    do: True
+    mode: 'film' # choice of additive, film
+    latent_conditioning: True
+    spatial_conditioning: True
+    code_dim: 256
+    spatial_cfg:
+      type: 'Hash' # choice of Hash, MLP, Siren
+      shared_net:
+        do: False
+        num_layers: 4
+        num_hidden: 16
+        num_in: 16
+      num_layers: 4
+      num_hidden: 16
+      norm: False
+  rff:
+    std: 20.0
+    learnable_coefficients: False
+  arff:
+    init_mask_value: 0.4
+  hash:
+    num_levels: 16
+    level_dim: 2
+    base_resolution: 16
+    log2_max_params_per_level: 19
+  garf:
+    a: 0.1  # Smaller is higher frequency
+    trainable: False
+  siren:
+    omega: 120.0
+    learnable_omega: False
+  gabor:
+    input_scale: 100.0
+    alpha: 1.0
+
+# trainer
+training:
+  do: True
+  lr: 1e-4
+  lr_conditioning: 1e-3
+  batch_size: 16384
+  epochs: 1000
+  per_patient_batching: True # To ensure all sampled points are from the same patient
+  num_workers: 4
+  checkpoint_steps: 500 # number of steps for checkpointing
+  lr_step_size: 20000 # number of steps for lr decay
+  lr_gamma: 0.9 # lr decay factor
+  max_time: 600 # in seconds
+  validate_every: 10000  # frequency of validation in number of steps
+  shuffle: True
+  lr_patience: 150 # number of iterations of patience for the reduce on plateau scheduler
+
+# optimizer
+optimizer:
+  type: 'adam'
+  betas: [0.9, 0.999]
+  eps: 1e-8
+  weight_decay: 0.0
+
+# data
+dataset:
+  path: '../../../data/volumes_recon_pretraining' # path to dataset
+  original_volumes_path: '../../../data/volumes' # path to original volumes
+  num_vols: 200  # number of volumes to use
+  name: 'reconstructions'
+
+# validation
+validation:
+  do: True
+  early_stopping_step_interval: 500
+  patience: 3
+  delta: .01
+  lr: 1e-3
+  batch_size: 1024
+  epochs: 100
+  num_workers: 16
+  lr_step_size: 20000 # number of steps for lr decay
+  lr_gamma: 0.9 # lr decay factor
+  max_time: 300 # in seconds
+  shuffle: True
+  per_patient_batching: False
+  max_iters: None
+  max_epochs: 1000000
+
+# optimizer
+val_optimizer:
+  type: 'adam'
+  betas: [0.9, 0.999]
+  eps: 1e-8
+  weight_decay: 0.0
+
+# data
+val_dataset:
+  path: '../../../data/volumes' # path to dataset
+  num_vols: 1  # number of volumes to use
+  num_projs: 400
+  num_steps: 300
+  projs_sample_step: 8
+  noisy_projections: False
+  name: 'projections'
+  volume_id: 0
+  max_epochs: 2
+  stage: 'val'
+  max_iters: None

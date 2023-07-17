@@ -1,0 +1,73 @@
+# @package _global_
+defaults:
+  - override hydra/sweeper: optuna
+  - override hydra/sweeper/sampler: cmaes
+
+# global
+wandb_log: True
+run_name: 'validation_400_projs'
+project_name: 'validation_naf'
+seed: 42
+cuda: True
+tracking_metric: "psnr"
+stage: "valid"
+
+hydra:
+  job:
+    chdir: True
+  sweep:
+    dir: "/projects/nef_recon/multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}_${run_name}"
+  run:
+    dir: "/projects/nef_recon/outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}_${run_name}"
+
+log_steps:
+  volumes: 10000
+  loss: 500
+  metrics: 5000
+
+# neural fields
+nef:
+  num_layers: 4
+  num_hidden: 32
+  final_act: "relu"
+  skip_conn: []
+  hash:
+    num_levels: 8   # number of grids
+    level_dim: 2     # dimensionality of the feature for each grid
+    base_resolution: 8   # minimum resolution for the grid
+    log2_max_params_per_level: 19  # max number of parameters in the table
+
+# trainer
+training:
+  early_stopping_step_interval: 5000
+  patience: 5
+  delta: .01
+  lr: 5e-4
+  batch_size: 1
+  epochs: 1500
+  num_workers: 12
+  lr_step_size: 300000
+  lr_gamma: 0.1
+  max_time: 1000 # in seconds
+  max_iter: None
+
+
+# optimizer
+optimizer:
+  type: 'adam'
+  betas: [0.9, 0.999]
+  eps: 1e-8
+  weight_decay: 1e-7
+
+# data
+dataset:
+  path: ??? # path to dataset
+  num_steps: 300
+  num_projs: 400  # number of projections selected starting from idx 0
+  projs_sample_step: 1  # step size for subsampling projections
+  num_vols: 1  # number of volumes to use
+  norm_const: 1
+  num_rays: 1024
+  noisy_projections: True
+  name: ???
+  volume_id: 0

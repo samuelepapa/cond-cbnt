@@ -1,0 +1,21 @@
+name: tomorecon
+channels:
+  - defaults
+  - nvidia
+  - conda-forge
+  - pytorch
+dependencies:
+  - torchvision
+  - pytorch
+  - pytorch-cuda=11.7
+  - numpy
+  - matplotlib
+  - tqdm
+  - pip
+  - pip:
+    - wandb
+    - hydra-core
+    - h5py
+    - scikit-image
+    - hydra-optuna-sweeper
+    - black
